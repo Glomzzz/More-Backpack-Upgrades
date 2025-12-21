@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = net.p3pp3rf1y.sophisticatedcore.common.gui.StorageContainerMenuBase.StorageUpgradeSlot.class)
 /**
  * 限制可放入背包升级槽的物品类型
- * 仅允许次元磁吸、拾取、卸货升级
+ * 仅允许次元磁吸、拾取
  */
 public class StorageUpgradeSlotMixin {
     @Inject(method = "mayPlace(Lnet/minecraft/world/item/ItemStack;)Z", at = @At("HEAD"), cancellable = true)

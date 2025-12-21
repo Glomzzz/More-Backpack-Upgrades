@@ -7,5 +7,6 @@
   "item.mobackup.dimensional_deposit_upgrade.tooltip": "潜行右键容器将背包物品卸入 RS 网络或普通容器",
   "creativetab.mobackup_tab": "更多背包升级",
   "misc.refinedstorage.network_card.linked": "已绑定 RS 控制器",
-  "misc.refinedstorage.network_card.not_found": "未找到 RS 网络或网络不可用"
+  "misc.refinedstorage.network_card.not_found": "未找到 RS 网络或网络不可用",
+  "misc.refinedstorage.network_card.tooltip": "已绑定坐标（%1$s, %2$s, %3$s），维度 %4$s"
 }

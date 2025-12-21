@@ -11,23 +11,15 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.UpgradeContainerRegistry;
 import net.p3pp3rf1y.sophisticatedcore.common.gui.UpgradeContainerType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilteredUpgradeContainer;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeContainer;
-import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeTab;
-import net.p3pp3rf1y.sophisticatedcore.upgrades.pickup.PickupUpgradeTab;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.pickup.PickupUpgradeWrapper;
-import net.p3pp3rf1y.sophisticatedcore.client.gui.UpgradeGuiManager;
-import net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase;
-import net.p3pp3rf1y.sophisticatedcore.client.gui.utils.Position;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositUpgradeContainer;
-import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositUpgradeTab;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositUpgradeWrapper;
-import net.p3pp3rf1y.sophisticatedbackpacks.client.gui.SBPButtonDefinitions;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -49,7 +41,6 @@ public class MoBackup {
 
         // 注册生命周期事件监听
         modEventBus.addListener(this::commonSetup);
-        modEventBus.addListener(this::clientSetup);
 
         // 注册 Forge 事件总线
         MinecraftForge.EVENT_BUS.register(this);
@@ -70,32 +61,6 @@ public class MoBackup {
         });
     }
 
-    /**
-     * 客户端初始化阶段
-     * 用于注册 GUI 界面标签（如过滤设置页）
-     */
-    private void clientSetup(final FMLClientSetupEvent event) {
-        event.enqueueWork(() -> {
-            // 注册次元拾取升级的高级过滤界面
-            UpgradeGuiManager.registerTab(DIMENSIONAL_PICKUP_TYPE, (
-                    ContentsFilteredUpgradeContainer<PickupUpgradeWrapper> uc, Position p,
-                    StorageScreenBase<?> s) -> new PickupUpgradeTab.Advanced(uc, p, s,
-                            net.p3pp3rf1y.sophisticatedbackpacks.Config.SERVER.advancedPickupUpgrade.slotsInRow.get(),
-                            SBPButtonDefinitions.BACKPACK_CONTENTS_FILTER_TYPE));
-
-            // 注册次元磁吸升级的高级过滤界面
-            UpgradeGuiManager.registerTab(DIMENSIONAL_MAGNET_TYPE,
-                    (MagnetUpgradeContainer uc, Position p, StorageScreenBase<?> s) -> new MagnetUpgradeTab.Advanced(uc,
-                            p, s,
-                            net.p3pp3rf1y.sophisticatedbackpacks.Config.SERVER.advancedMagnetUpgrade.slotsInRow.get(),
-                            SBPButtonDefinitions.BACKPACK_CONTENTS_FILTER_TYPE));
-
-            // 注册次元卸货升级的高级过滤界面
-            UpgradeGuiManager.registerTab(DIMENSIONAL_DEPOSIT_TYPE, (
-                    DepositUpgradeContainer uc, Position p,
-                    StorageScreenBase<?> s) -> new DepositUpgradeTab.Advanced(uc, p, s));
-        });
-    }
 
     public static ResourceLocation rl(String path) {
         return ResourceLocation.tryBuild(MOD_ID, path);
@@ -203,5 +168,40 @@ public class MoBackup {
                         event.setCanceled(true);
                     }
                 });
+    }
+
+    @net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid = com.kzjy.mobackup.MoBackup.MOD_ID, value = net.minecraftforge.api.distmarker.Dist.CLIENT, bus = net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus.MOD)
+    public static class ClientModEvents {
+        @net.minecraftforge.eventbus.api.SubscribeEvent
+        public static void clientSetup(final net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event) {
+            event.enqueueWork(() -> {
+                net.p3pp3rf1y.sophisticatedcore.client.gui.UpgradeGuiManager.registerTab(
+                        com.kzjy.mobackup.MoBackup.DIMENSIONAL_PICKUP_TYPE,
+                        (net.p3pp3rf1y.sophisticatedcore.upgrades.ContentsFilteredUpgradeContainer<net.p3pp3rf1y.sophisticatedcore.upgrades.pickup.PickupUpgradeWrapper> uc,
+                                net.p3pp3rf1y.sophisticatedcore.client.gui.utils.Position p,
+                                net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase<?> s) ->
+                                new net.p3pp3rf1y.sophisticatedcore.upgrades.pickup.PickupUpgradeTab.Advanced(
+                                        uc, p, s,
+                                        net.p3pp3rf1y.sophisticatedbackpacks.Config.SERVER.advancedPickupUpgrade.slotsInRow.get(),
+                                        net.p3pp3rf1y.sophisticatedbackpacks.client.gui.SBPButtonDefinitions.BACKPACK_CONTENTS_FILTER_TYPE));
+
+                net.p3pp3rf1y.sophisticatedcore.client.gui.UpgradeGuiManager.registerTab(
+                        com.kzjy.mobackup.MoBackup.DIMENSIONAL_MAGNET_TYPE,
+                        (net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeContainer uc,
+                                net.p3pp3rf1y.sophisticatedcore.client.gui.utils.Position p,
+                                net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase<?> s) ->
+                                new net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeTab.Advanced(
+                                        uc, p, s,
+                                        net.p3pp3rf1y.sophisticatedbackpacks.Config.SERVER.advancedMagnetUpgrade.slotsInRow.get(),
+                                        net.p3pp3rf1y.sophisticatedbackpacks.client.gui.SBPButtonDefinitions.BACKPACK_CONTENTS_FILTER_TYPE));
+
+                net.p3pp3rf1y.sophisticatedcore.client.gui.UpgradeGuiManager.registerTab(
+                        com.kzjy.mobackup.MoBackup.DIMENSIONAL_DEPOSIT_TYPE,
+                        (net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositUpgradeContainer uc,
+                                net.p3pp3rf1y.sophisticatedcore.client.gui.utils.Position p,
+                                net.p3pp3rf1y.sophisticatedcore.client.gui.StorageScreenBase<?> s) ->
+                                new net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositUpgradeTab.Advanced(uc, p, s));
+            });
+        }
     }
 }

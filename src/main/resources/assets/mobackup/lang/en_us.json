@@ -7,5 +7,6 @@
   "item.mobackup.dimensional_deposit_upgrade.tooltip": "Sneak Right-Click container to deposit backpack items into RS Network or regular containers",
   "creativetab.mobackup_tab": "More Backpack Upgrades",
   "misc.refinedstorage.network_card.linked": "Linked to RS Controller",
-  "misc.refinedstorage.network_card.not_found": "RS Network not found or unavailable"
+  "misc.refinedstorage.network_card.not_found": "RS Network not found or unavailable",
+  "misc.refinedstorage.network_card.tooltip": "Linked at (%1$s, %2$s, %3$s) in %4$s"
 }
