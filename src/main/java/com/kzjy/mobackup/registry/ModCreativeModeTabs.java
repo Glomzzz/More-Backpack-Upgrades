@@ -5,19 +5,19 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
  * 创造模式标签页注册表
  * 将模组物品归类到独立的创造模式标签页中
  */
 public class ModCreativeModeTabs {
-    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MoBackup.MOD_ID);
+    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MoBackup.MODID);
 
     // 注册主标签页
-    public static final RegistryObject<CreativeModeTab> MO_BACKUP_TAB = CREATIVE_MODE_TABS.register("mobackup_tab",
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MO_BACKUP_TAB = CREATIVE_MODE_TABS.register("mobackup_tab",
             () -> CreativeModeTab.builder()
                     // 使用磁吸升级作为标签图标
                     .icon(() -> new ItemStack(ModItems.DIMENSIONAL_MAGNET_UPGRADE.get()))

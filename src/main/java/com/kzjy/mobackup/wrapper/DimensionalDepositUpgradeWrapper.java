@@ -3,13 +3,14 @@ package com.kzjy.mobackup.wrapper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositFilterLogic;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositFilterType;
 import net.p3pp3rf1y.sophisticatedbackpacks.upgrades.deposit.DepositUpgradeWrapper;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.inventory.FilteredItemHandler;
 import net.p3pp3rf1y.sophisticatedcore.util.InventoryHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,10 +32,8 @@ public class DimensionalDepositUpgradeWrapper extends DepositUpgradeWrapper {
      * 执行物品从背包到目标容器（或 RS 网络代理）的传输
      */
     @Override
-    public void onHandlerInteract(IItemHandler itemHandler, Player player) {
+    public void onHandlerInteract(@NotNull IItemHandler itemHandler, @NotNull Player player) {
         DepositFilterLogic filterLogic = getFilterLogic();
-
-        IItemHandler targetHandler = itemHandler;
 
         AtomicInteger stacksAdded = new AtomicInteger(0);
 
@@ -46,7 +45,7 @@ public class DimensionalDepositUpgradeWrapper extends DepositUpgradeWrapper {
 
         // 执行传输：从升级处理清单（背包内容）传输到目标容器
         InventoryHelper.transfer(storageWrapper.getInventoryForUpgradeProcessing(),
-                new FilteredItemHandler<>(targetHandler, Collections.singletonList(filterLogic),
+                new FilteredItemHandler<>(itemHandler, Collections.singletonList(filterLogic),
                         Collections.emptyList()),
                 s -> stacksAdded.incrementAndGet());
 
