@@ -1,9 +1,10 @@
 package com.kzjy.mobackup.item;
 
 import com.kzjy.mobackup.core.RSBridge;
-import com.refinedmods.refinedstorage.block.ControllerBlock;
+import com.refinedmods.refinedstorage.common.controller.ControllerBlock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.InteractionResult;
@@ -32,7 +33,7 @@ public interface IRSLinkedItem {
         if (block instanceof ControllerBlock) {
             ItemStack stack = ctx.getPlayer().getItemInHand(ctx.getHand());
             // 保存绑定信息
-            RSBridge.saveCoordinate(stack.getOrCreateTag(), ctx.getClickedPos(), ctx.getLevel().dimension());
+            RSBridge.saveCoordinate(stack, ctx.getClickedPos(), ctx.getLevel().dimension());
             ctx.getPlayer().displayClientMessage(Component.translatable("misc.refinedstorage.network_card.linked"), true);
             return InteractionResult.SUCCESS;
         }

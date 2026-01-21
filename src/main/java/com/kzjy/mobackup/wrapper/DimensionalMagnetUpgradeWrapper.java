@@ -1,8 +1,14 @@
 package com.kzjy.mobackup.wrapper;
 
 import com.kzjy.mobackup.core.RSBridge;
-import com.refinedmods.refinedstorage.api.network.INetwork;
-import com.refinedmods.refinedstorage.api.util.Action;
+import com.refinedmods.refinedstorage.api.network.Network;
+import com.refinedmods.refinedstorage.api.core.Action;
+import com.refinedmods.refinedstorage.api.network.storage.StorageNetworkComponent;
+import com.refinedmods.refinedstorage.api.storage.Actor;
+import com.refinedmods.refinedstorage.common.api.storage.PlayerActor;
+import com.refinedmods.refinedstorage.common.api.RefinedStorageApi;
+import com.refinedmods.refinedstorage.api.resource.ResourceAmount;
+import com.refinedmods.refinedstorage.api.resource.ResourceKey;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
@@ -15,20 +21,22 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.p3pp3rf1y.sophisticatedcore.api.IStorageWrapper;
 import net.p3pp3rf1y.sophisticatedcore.init.ModFluids;
 import net.p3pp3rf1y.sophisticatedcore.inventory.IItemHandlerSimpleInserter;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.magnet.MagnetUpgradeWrapper;
 import net.p3pp3rf1y.sophisticatedcore.util.XpHelper;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * 次元磁吸升级的逻辑实现
+ * 次元磁吸升级的逻辑实现（升级到 Refined Storage 2 / refinedstorage2）
  * 将吸附到的物品优先推送到 RS 网络，失败时回退到背包
  */
 public class DimensionalMagnetUpgradeWrapper extends MagnetUpgradeWrapper {
@@ -39,23 +47,25 @@ public class DimensionalMagnetUpgradeWrapper extends MagnetUpgradeWrapper {
     private static final int FULL_COOLDOWN_TICKS = 40;
 
     public DimensionalMagnetUpgradeWrapper(IStorageWrapper storageWrapper, ItemStack upgrade,
-            Consumer<ItemStack> upgradeSaveHandler) {
+                                           Consumer<ItemStack> upgradeSaveHandler) {
         super(storageWrapper, upgrade, upgradeSaveHandler);
     }
 
-    private INetwork cachedNetwork;
+    private Network cachedNetwork;
     private long lastNetworkCheckTime = -1;
     private static final int NETWORK_CHECK_INTERVAL = 20;
 
-    private INetwork getCachedNetwork(Level level) {
+    private Network getCachedNetwork(Level level) {
         long gameTime = level.getGameTime();
-        if (cachedNetwork == null || !cachedNetwork.canRun() || lastNetworkCheckTime < 0
+        if (cachedNetwork == null || lastNetworkCheckTime < 0
                 || gameTime - lastNetworkCheckTime >= NETWORK_CHECK_INTERVAL) {
             lastNetworkCheckTime = gameTime;
+            // RSBridge.getNetwork 已在你的项目中升级为 refinedstorage2 的 RSBridge.getNetwork(...)
             cachedNetwork = RSBridge.getNetwork(level, upgrade);
         }
         return cachedNetwork;
     }
+
     @Override
     public void tick(@Nullable Entity entity, Level world, BlockPos pos) {
         if (isInCooldown(world)) {
@@ -70,8 +80,6 @@ public class DimensionalMagnetUpgradeWrapper extends MagnetUpgradeWrapper {
 
         setCooldown(world, cooldown);
     }
-
-    // 自定义实现：替代父类的私有方法逻辑
 
     private boolean canFillStorageWithXpCustom() {
         return storageWrapper.getFluidHandler().map(fluidHandler -> fluidHandler.fill(ModFluids.EXPERIENCE_TAG, 1,
@@ -132,7 +140,6 @@ public class DimensionalMagnetUpgradeWrapper extends MagnetUpgradeWrapper {
 
         int cooldown = FULL_COOLDOWN_TICKS;
         for (ItemEntity itemEntity : itemEntities) {
-            // Accessing filterLogic via getFilterLogic() which is public/protected
             if (!itemEntity.isAlive() || !getFilterLogic().matchesFilter(itemEntity.getItem())
                     || canNotPickupCustom(itemEntity, entity)) {
                 continue;
@@ -153,27 +160,56 @@ public class DimensionalMagnetUpgradeWrapper extends MagnetUpgradeWrapper {
                 : data.contains(PREVENT_REMOTE_MOVEMENT) && !data.contains(ALLOW_MACHINE_MOVEMENT);
     }
 
+    /**
+     * 核心：先尝试把物品插入到 refinedstorage2 网络（StorageNetworkComponent.insert），
+     * 插入失败或网络不可用时回退到背包插入逻辑。
+     */
     private boolean tryToInsertItemCustom(ItemEntity itemEntity, Level world, @Nullable Player player) {
         ItemStack stack = itemEntity.getItem();
 
-        // 写入 RS 网络
-        INetwork network = getCachedNetwork(world);
-        if (network != null && network.canRun()) {
-            ItemStack original = stack.copy();
-            ItemStack remaining = network.insertItem(original, original.getCount(), Action.PERFORM);
-            if (player != null && remaining.getCount() < original.getCount()) {
-                com.kzjy.mobackup.core.RSBridge.markItemInsertedByPlayer(network, player, original);
-            }
-            if (remaining.isEmpty()) {
-                itemEntity.setItem(ItemStack.EMPTY);
-                itemEntity.discard();
-                return true;
-            }
-            stack = remaining;
-        }
-        // RS 写入结束
+        // 写入 RS 网络（refinedstorage2）
+        Network network = getCachedNetwork(world);
+        if (network != null) {
+            // 把 ItemStack 转为 ResourceAmount（通过公开的 factory）
+            Optional<ResourceAmount> maybeResourceAmount = RefinedStorageApi.INSTANCE.getItemResourceFactory().create(stack);
+            if (maybeResourceAmount.isPresent()) {
+                ResourceAmount resourceAmount = maybeResourceAmount.get();
+                ResourceKey resource = resourceAmount.resource();
+                long amountToInsert = Math.min(resourceAmount.amount(), stack.getCount());
 
-        // 回退到背包
+                var storage = network.getComponent(StorageNetworkComponent.class);
+                Action action = Action.EXECUTE; // 在模拟分支 below 会替换为 Action.SIMULATE
+                Actor actor = player != null ? new PlayerActor(player) : Actor.EMPTY;
+
+                // 先 try simulate? Here we want to actually insert: use EXECUTE
+                long inserted = 0;
+                try {
+                    inserted = storage.insert(resource, amountToInsert, Action.EXECUTE, actor);
+                } catch (Throwable t) {
+                    // 插入过程异常，回退到背包
+                }
+
+                if (player != null && inserted > 0) {
+                    // 标记由玩家插入（RSBridge 中已升级为 refinedstorage2 的友好接口 / no-op fallback）
+                    RSBridge.markItemInsertedByPlayer(network, player, stack.copy());
+                }
+
+                if (inserted >= amountToInsert) {
+                    // 全部插入，移除实体
+                    itemEntity.setItem(ItemStack.EMPTY);
+                    itemEntity.discard();
+                    return true;
+                } else if (inserted > 0) {
+                    // 部分插入，继续处理剩余部分作为 stack
+                    ItemStack remaining = stack.copy();
+                    int remainingCount = stack.getCount() - (int) inserted;
+                    remaining.setCount(remainingCount);
+                    stack = remaining;
+                }
+                // 否则 inserted == 0 -> 没有插入，回退到背包
+            }
+        }
+        // RS 写入结束或不可用 -> 回退到背包
         IItemHandlerSimpleInserter inventory = storageWrapper.getInventoryForUpgradeProcessing();
         ItemStack remaining = inventory.insertItem(stack, true);
         boolean insertedSomething = false;
@@ -200,17 +236,44 @@ public class DimensionalMagnetUpgradeWrapper extends MagnetUpgradeWrapper {
 
     // 覆写 pickup：兼容 IPickupResponseUpgrade
     @Override
-    public ItemStack pickup(Level world, ItemStack stack, boolean simulate) {
+    public @NotNull ItemStack pickup(@NotNull Level world, @NotNull ItemStack stack, boolean simulate) {
         if (!shouldPickupItems() || !getFilterLogic().matchesFilter(stack)) {
             return stack;
         }
 
-        INetwork network = getCachedNetwork(world);
-        if (network != null && network.canRun()) {
-            ItemStack remaining = network.insertItem(stack, stack.getCount(),
-                    simulate ? Action.SIMULATE : Action.PERFORM);
-            if (remaining.getCount() < stack.getCount()) {
-                return remaining;
+        Network network = getCachedNetwork(world);
+        if (network != null) {
+            Optional<ResourceAmount> maybeResourceAmount = RefinedStorageApi.INSTANCE.getItemResourceFactory().create(stack);
+            if (maybeResourceAmount.isPresent()) {
+                ResourceAmount resourceAmount = maybeResourceAmount.get();
+                ResourceKey resource = resourceAmount.resource();
+                long amountToInsert = Math.min(resourceAmount.amount(), stack.getCount());
+
+                StorageNetworkComponent storage = network.getComponent(StorageNetworkComponent.class);
+
+                Player ctx = com.kzjy.mobackup.core.PickupContext.current();
+                Actor actor = simulate ? Actor.EMPTY : (ctx != null ? new PlayerActor(ctx) : Actor.EMPTY);
+                long inserted = 0;
+                try {
+                    // If we don't have a Player in this context, pass Actor.EMPTY (insertion done by upgrade)
+                    if (simulate) {
+                        inserted = storage.insert(resource, amountToInsert, Action.SIMULATE, actor);
+                    } else {
+                        // There is no Player reference in this method; treat as non-player actor
+                        inserted = storage.insert(resource, amountToInsert, Action.EXECUTE, actor);
+                    }
+                } catch (Throwable t) {
+                }
+
+                if (inserted > 0) {
+                    int remaining = stack.getCount() - (int) inserted;
+                    if (remaining <= 0) {
+                        return ItemStack.EMPTY;
+                    }
+                    ItemStack rem = stack.copy();
+                    rem.setCount(remaining);
+                    return rem;
+                }
             }
         }
 

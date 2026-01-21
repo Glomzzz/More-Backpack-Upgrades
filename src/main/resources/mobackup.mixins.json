@@ -1,15 +1,15 @@
 {
   "required": true,
-  "minVersion": "0.8",
   "package": "com.kzjy.mobackup.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
   "refmap": "mobackup.refmap.json",
   "mixins": [
     "StorageUpgradeSlotMixin"
   ],
-  "client": [],
-  "server": [],
   "injectors": {
     "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
   }
 }

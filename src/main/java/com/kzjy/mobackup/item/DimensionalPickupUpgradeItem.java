@@ -3,6 +3,7 @@ package com.kzjy.mobackup.item;
 import com.kzjy.mobackup.wrapper.DimensionalPickupUpgradeWrapper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.TooltipFlag;
@@ -12,6 +13,7 @@ import net.p3pp3rf1y.sophisticatedcore.upgrades.IUpgradeCountLimitConfig;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.UpgradeType;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.pickup.PickupUpgradeItem;
 import net.p3pp3rf1y.sophisticatedcore.upgrades.pickup.PickupUpgradeWrapper;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -47,8 +49,8 @@ public class DimensionalPickupUpgradeItem extends PickupUpgradeItem implements I
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip, TooltipFlag flagIn) {
-        super.appendHoverText(stack, worldIn, tooltip, flagIn);
+    public void appendHoverText(@NotNull ItemStack stack, Item.@NotNull TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flagIn) {
+        super.appendHoverText(stack, context, tooltip, flagIn);
         IRSLinkedItem.super.appendHoverText(stack, tooltip);
     }
 
@@ -62,9 +64,9 @@ public class DimensionalPickupUpgradeItem extends PickupUpgradeItem implements I
         return 1;
     }
 
-    @Override
-    public Rarity getRarity(ItemStack stack) {
-        return Rarity.EPIC;
-    }
+//    @Override
+//    public Rarity getRarity(ItemStack stack) {
+//        return Rarity.EPIC;
+//    }
 
 }

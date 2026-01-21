@@ -38,8 +38,8 @@ public class DimensionalDepositUpgradeItem extends DepositUpgradeItem {
     }
 
     // 设置物品稀有度为史诗（紫色）
-    @Override
-    public Rarity getRarity(ItemStack stack) {
-        return Rarity.EPIC;
-    }
+//    @Override
+//    public Rarity getRarity(ItemStack stack) {
+//        return Rarity.EPIC;
+//    }
 }
